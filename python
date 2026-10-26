@@ -1,0 +1,212 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+path=r'ur path'
+cred=pd.read_csv(path)
+cred.loc[cred['person_emp_length'] > 80, 'person_emp_length'] = np.nan #we remove the inputs that cannot exist
+cred.loc[cred['person_age'] > 99, 'person_age'] = np.nan #do the same
+cred.to_csv(r'C:\Users\Home\Desktop\cred\credit_risk_dataset_clean.csv')
+
+#15 Есть ли пустые категории в этих комбинациях?
+v1rok1=cred.groupby(['person_home_ownership', 'loan_grade']).ngroups
+v1rok2=cred['person_home_ownership'].nunique() * cred['loan_grade'].nunique()
+v1rok2-v1rok1
+v1rok1=cred.groupby(['person_home_ownership', 'loan_grade']).size()
+v1rok1
+virok=cred.groupby(['loan_intent', 'person_home_ownership', 'loan_grade']).ngroups
+virok3=cred['loan_intent'].nunique() * cred['person_home_ownership'].nunique() * cred['loan_grade'].nunique()
+virok3-virok
+v1rok4=cred.groupby(['loan_intent', 'loan_grade']).ngroups
+v1rok5=cred['loan_intent'].nunique() * cred['loan_grade'].nunique()
+v1rok5-v1rok4
+
+#16 Какие комбинации встречаются реже всего?
+combos = [
+    ['loan_intent', 'loan_grade'],
+    ['person_home_ownership', 'loan_grade'],
+    ['loan_intent', 'person_home_ownership', 'loan_grade']
+]
+for i in combos:
+    virok=cred.groupby(i).size().reset_index(name='sizze').sort_values(ascending = True, by='sizze')
+virok
+
+#17 Какие комбинации встречаются чаще всего?
+combos = [
+    ['loan_intent', 'loan_grade'],
+    ['person_home_ownership', 'loan_grade'],
+    ['loan_intent', 'person_home_ownership', 'loan_grade']
+]
+for i in combos:
+    virok=cred.groupby(i).size().reset_index(name='sizze').sort_values(ascending = False, by='sizze')
+virok
+
+#20 Есть ли связь между балансом классов и размером кредита?
+cred.groupby('loan_status')['loan_amnt'].agg(['mean', 'median'])
+cred['loan_status'].corr(cred['loan_amnt'])
+plt.figure(figsize=(8, 5))
+sns.boxplot(x='loan_status', y='loan_amnt', data=cred)
+plt.title('Распределение суммы кредита в зависимости от статуса')
+plt.xlabel('Статус (0 = погашен, 1 = дефолт)')
+plt.ylabel('Сумма кредита')
+plt.show()
+
+#21 Есть ли связь между балансом классов и доходом?
+cred.groupby('loan_status')['person_income'].agg(['mean', 'median'])
+cred['loan_status'].corr(cred['person_income'])
+plt.figure(figsize=(8, 5))
+sns.boxplot(x='loan_status', y='person_income', data=cred)
+plt.ylim (0, 250000)
+plt.title('по доходу')
+plt.xlabel('Статус (0 = погашен, 1 = дефолт)')
+plt.ylabel('доход')
+plt.show()
+
+#22 Есть ли связь между балансом классов и возрастом?
+cred.groupby('loan_status')['person_age'].agg(['mean', 'median'])
+cred['loan_status'].corr(cred['person_age'])
+plt.figure(figsize=(8, 5))
+sns.boxplot(x='loan_status', y='person_age', data=cred)
+plt.title('по возрасту')
+plt.xlabel('Статус (0 = погашен, 1 = дефолт)')
+plt.ylabel('возраст')
+plt.show()
+
+#23 Есть ли связь между балансом классов и стажем?
+cred.groupby('loan_status')['person_emp_length'].agg(['mean', 'median'])
+cred['loan_status'].corr(cred['person_emp_length'])
+plt.figure(figsize=(8, 5))
+sns.boxplot(x='loan_status', y='person_emp_length', data=cred)
+plt.title('по стажу')
+plt.xlabel('Статус (0 = погашен, 1 = дефолт)')
+plt.ylabel('стаж')
+plt.show()
+
+#24 Меняется ли default rate при удалении дубликатов?
+cred['loan_status'].mean()*100.0
+virok=cred.drop_duplicates()
+virok['loan_status'].mean()*100.0
+
+#25 Меняется ли default rate при фильтре по ставке?
+virok = cred['loan_status'].mean() * 100
+virok2 = cred['loan_int_rate'].median()
+virok3=cred.query('loan_int_rate > @virok2')
+virok3['loan_status'].mean() * 100
+virok4=cred.query('loan_int_rate < @virok2')
+virok4['loan_status'].mean() * 100
+
+#26 Какая доля дефолтов среди «крупных» кредитов?
+p75 = cred['loan_amnt'].quantile(0.75)
+large_loans = cred[cred['loan_amnt'] > p75]
+dr_large = large_loans['loan_status'].mean() * 100
+other_loans = cred[cred['loan_amnt'] <= p75]
+dr_other = other_loans['loan_status'].mean() * 100
+dr_other, dr_large
+
+#27 Какая доля дефолтов среди «мелких» кредитов?
+p25 = cred['loan_amnt'].quantile(0.25)
+cred[cred['loan_amnt'] <= p25]['loan_status'].mean() * 100
+
+#28 Какая доля дефолтов среди заёмщиков старше 40?
+virok=cred.query('person_age > 40')
+virok['loan_status'].mean() * 100
+
+#32 Растёт ли default rate монотонно от A к G?
+graf=cred.groupby('loan_grade')['loan_status'].mean() * 100
+graf
+plt.figure(figsize=(8, 5))
+sns.barplot(
+    x='loan_grade', 
+    y='loan_status', 
+    data=cred, 
+    order=['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+    errorbar=None, 
+    color='skyblue'
+)
+plt.title('Default rate по грейдам (от A к G)')
+plt.xlabel('Кредитный грейд')
+plt.ylabel('Доля дефолтов')
+plt.show()
+
+#33 Как меняется средняя ставка от A к G?
+cred.groupby('loan_grade')['loan_int_rate'].mean()
+plt.figure(figsize=(8, 5))
+sns.barplot(
+    x='loan_grade', 
+    y='loan_int_rate', 
+    data=cred, 
+    order=['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+    errorbar=None, 
+    color='skyblue'
+)
+plt.title('средняя ставка по грейдам (от A к G)')
+plt.xlabel('Кредитный грейд')
+plt.ylabel('средняя ставка')
+plt.show()
+
+#34 Как меняется разброс ставки от A к G?
+cred.groupby('loan_grade')['loan_int_rate'].agg(['mean', 'std', 'min', 'max'])
+plt.figure(figsize=(10, 6))
+sns.boxplot(
+    x='loan_grade', 
+    y='loan_int_rate', 
+    data=cred, 
+    order=['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+    color='lightgreen'
+)
+plt.title('Разброс процентной ставки по грейдам')
+plt.xlabel('Кредитный грейд')
+plt.ylabel('Ставка (%)')
+plt.show()
+
+#35 Как меняется средняя сумма кредита от A к G?
+cred.groupby('loan_grade')['loan_amnt'].mean()
+plt.figure(figsize=(8, 5))
+sns.barplot(
+    x='loan_grade', 
+    y='loan_amnt', 
+    data=cred, 
+    order=['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+    errorbar=None, 
+    color='skyblue'
+)
+plt.title('сумма кредита по грейдам (от A к G)')
+plt.xlabel('Кредитный грейд')
+plt.ylabel('сумма кредита')
+plt.show()
+
+#36 Как меняется средний доход от A к G?
+cred.groupby('loan_grade')['person_income'].median()
+plt.figure(figsize=(8, 5))
+sns.barplot(
+    x='loan_grade', 
+    y='person_income', 
+    data=cred, 
+    order=['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+    errorbar=None,
+    estimator='median',
+    color='skyblue'
+)
+plt.title('средний доход по грейдам (от A к G)')
+plt.xlabel('Кредитный грейд')
+plt.ylabel('средний доход')
+plt.show()
+
+#37 Как меняется средний возраст от A к G?
+cred.groupby('loan_grade')['person_age'].mean()
+
+#38 Как меняется средний стаж от A к G?
+cred.groupby('loan_grade')['person_emp_length'].mean()
+
+#39 Как меняется средняя кредитная история от A к G?
+cred.groupby('loan_grade')['cb_person_cred_hist_length'].mean()
+
+#42 Есть ли грейды, где ставка почти не варьируется?
+virok=cred.groupby('loan_grade')['loan_int_rate'].agg(count = 'size', min = 'min', max = 'max', std_dev= 'std')
+virok['diff']= virok['max']-virok['min']
+virok
+
+#43 Есть ли грейды, где сумма кредита почти фиксирована?
+virok=cred.groupby('loan_grade')['loan_amnt'].agg(count = 'size', min = 'min', max = 'max', std_dev= 'std')
+virok['diff']= virok['max']-virok['min']
+virok
