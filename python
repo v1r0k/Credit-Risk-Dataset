@@ -6,7 +6,7 @@ path=r'ur path'
 cred=pd.read_csv(path)
 cred.loc[cred['person_emp_length'] > 80, 'person_emp_length'] = np.nan #we remove the inputs that cannot exist
 cred.loc[cred['person_age'] > 99, 'person_age'] = np.nan #do the same
-cred.to_csv(r'C:\Users\Home\Desktop\cred\credit_risk_dataset_clean.csv')
+cred.to_csv(ur path')
 
 #15 Есть ли пустые категории в этих комбинациях?
 v1rok1=cred.groupby(['person_home_ownership', 'loan_grade']).ngroups
